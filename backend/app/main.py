@@ -1,8 +1,10 @@
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+from uuid import UUID, uuid4
+from datetime import date
 
 from app.schemas import BusinessProfileCreate, BusinessProfileResponse
 from app.ai_service import generate_social_post
@@ -17,16 +19,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic Schemas for Content Posts
+class PostCreate(BaseModel):
+    business_profile_id: UUID
+    platform: str
+    topic: str
+    caption: str
+    hashtags: Optional[List[str]] = []
+    call_to_action: Optional[str] = None
+    scheduled_date: Optional[date] = None
+
+class PostResponse(PostCreate):
+    id: UUID
+    user_id: UUID
+    status: str
+
 class GeneratePostRequest(BaseModel):
     company_name: str
     topic: str
     platform: str
     brand_voice: Optional[str] = "professional"
 
+DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000"
+
 @app.get("/")
 def read_root():
     return {"message": "AI Social Media Content Platform Backend Running"}
 
+# --- AI Content Generation Endpoint ---
 @app.post("/api/generate")
 def generate_post(req: GeneratePostRequest):
     try:
@@ -39,3 +59,23 @@ def generate_post(req: GeneratePostRequest):
         return json.loads(raw_result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- Content Post Endpoints ---
+@app.post("/api/posts", response_model=PostResponse)
+def create_post(post: PostCreate):
+    return {
+        "id": uuid4(),
+        "user_id": DEFAULT_USER_ID,
+        "business_profile_id": post.business_profile_id,
+        "platform": post.platform,
+        "topic": post.topic,
+        "caption": post.caption,
+        "hashtags": post.hashtags,
+        "call_to_action": post.call_to_action,
+        "scheduled_date": post.scheduled_date,
+        "status": "draft"
+    }
+
+@app.get("/api/posts", response_model=List[PostResponse])
+def get_posts():
+    return []
