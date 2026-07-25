@@ -79,3 +79,13 @@ def create_post(post: PostCreate):
 @app.get("/api/posts", response_model=List[PostResponse])
 def get_posts():
     return []
+
+# --- Publishing Mock Endpoint ---
+@app.post("/api/posts/{post_id}/publish")
+def publish_post(post_id: str):
+    return {
+        "status": "success",
+        "post_id": post_id,
+        "message": f"Post {post_id} successfully published to social media platform!",
+        "published_at": "2026-07-25T17:25:00Z"
+    }

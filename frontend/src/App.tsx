@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Calendar as CalendarIcon, BarChart3, Plus, Send } from 'lucide-react';
+import { Sparkles, Calendar as CalendarIcon, BarChart3, Plus, Send, CheckCircle2 } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -9,6 +9,7 @@ interface Post {
   hashtags: string[];
   call_to_action: string;
   scheduled_date: string;
+  status?: string;
 }
 
 interface AnalyticsData {
@@ -39,6 +40,7 @@ export default function App() {
       hashtags: ['#AI', '#SaaS', '#TechInnovation'],
       call_to_action: 'Try it free today!',
       scheduled_date: '2026-07-28',
+      status: 'scheduled',
     },
   ]);
 
@@ -77,6 +79,7 @@ export default function App() {
         hashtags: data.hashtags || [],
         call_to_action: data.call_to_action || '',
         scheduled_date: new Date().toISOString().split('T')[0],
+        status: 'scheduled',
       };
 
       setPosts([newPost, ...posts]);
@@ -85,6 +88,20 @@ export default function App() {
       alert('Error generating post. Ensure backend is running at http://127.0.0.1:8000');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePublish = async (postId: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/posts/${postId}/publish`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      setPosts(posts.map(p => p.id === postId ? { ...p, status: 'published' } : p));
+      alert(data.message);
+    } catch (err) {
+      alert('Failed to publish post.');
     }
   };
 
@@ -134,7 +151,7 @@ export default function App() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h1 className="text-2xl font-bold">Content Calendar</h1>
-                <p className="text-slate-400 text-sm">Manage and schedule your social media content</p>
+                <p className="text-slate-400 text-sm">Manage, schedule, and publish your social media content</p>
               </div>
               <button
                 onClick={() => setActiveTab('generate')}
@@ -152,7 +169,9 @@ export default function App() {
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
                         {post.platform}
                       </span>
-                      <span className="text-xs text-slate-400">{post.scheduled_date}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${post.status === 'published' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}`}>
+                        {post.status || 'scheduled'}
+                      </span>
                     </div>
                     <h3 className="font-semibold text-slate-200 mb-2">{post.topic}</h3>
                     <p className="text-slate-300 text-sm mb-4 line-clamp-4">{post.caption}</p>
@@ -164,8 +183,24 @@ export default function App() {
                       ))}
                     </div>
                     {post.call_to_action && (
-                      <p className="text-xs text-emerald-400 font-medium italic">CTA: {post.call_to_action}</p>
+                      <p className="text-xs text-emerald-400 font-medium italic mb-4">CTA: {post.call_to_action}</p>
                     )}
+                    
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-700">
+                      <span className="text-xs text-slate-400">{post.scheduled_date}</span>
+                      {post.status !== 'published' ? (
+                        <button
+                          onClick={() => handlePublish(post.id)}
+                          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition"
+                        >
+                          <Send className="w-3 h-3" /> Publish Now
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1 text-emerald-400 text-xs font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Published
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
