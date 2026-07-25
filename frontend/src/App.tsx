@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Calendar as CalendarIcon, Plus, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Calendar as CalendarIcon, BarChart3, Plus, Send } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -11,13 +11,24 @@ interface Post {
   scheduled_date: string;
 }
 
+interface AnalyticsData {
+  total_posts: number;
+  scheduled_posts: number;
+  published_posts: number;
+  platforms_breakdown: Record<string, number>;
+  engagement_rate_avg: string;
+  growth_trend: string;
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'generate'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'generate' | 'analytics'>('calendar');
   const [loading, setLoading] = useState(false);
   const [companyName, setCompanyName] = useState('TechNova');
   const [topic, setTopic] = useState('Launch of AI Assistant');
   const [platform, setPlatform] = useState('LinkedIn');
   const [brandVoice, setBrandVoice] = useState('Professional');
+
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   const [posts, setPosts] = useState<Post[]>([
     {
@@ -30,6 +41,15 @@ export default function App() {
       scheduled_date: '2026-07-28',
     },
   ]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetch('http://127.0.0.1:8000/api/analytics')
+        .then((res) => res.json())
+        .then((data) => setAnalytics(data))
+        .catch((err) => console.error('Failed to fetch analytics', err));
+    }
+  }, [activeTab]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +115,14 @@ export default function App() {
             >
               <Sparkles className="w-4 h-4" /> AI Generator
             </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
+                activeTab === 'analytics' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" /> Analytics
+            </button>
           </nav>
         </div>
       </aside>
@@ -143,7 +171,7 @@ export default function App() {
               ))}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'generate' ? (
           <div className="max-w-2xl mx-auto bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
             <h1 className="text-2xl font-bold mb-1 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-indigo-400" /> Generate Social Post
@@ -211,6 +239,30 @@ export default function App() {
                 {loading ? 'Generating with Gemini...' : <><Send className="w-4 h-4" /> Generate Post</>}
               </button>
             </form>
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Platform Analytics</h1>
+            <p className="text-slate-400 text-sm mb-6">Track engagement and performance across your channels</p>
+
+            {analytics ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-slate-400 text-sm font-medium mb-2">Total Posts</h3>
+                  <p className="text-3xl font-bold text-indigo-400">{analytics.total_posts}</p>
+                </div>
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-slate-400 text-sm font-medium mb-2">Avg Engagement Rate</h3>
+                  <p className="text-3xl font-bold text-emerald-400">{analytics.engagement_rate_avg}</p>
+                </div>
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-slate-400 text-sm font-medium mb-2">Growth Trend</h3>
+                  <p className="text-3xl font-bold text-sky-400">{analytics.growth_trend}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-400">Loading analytics...</p>
+            )}
           </div>
         )}
       </main>
