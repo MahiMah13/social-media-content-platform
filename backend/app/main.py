@@ -1,15 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+import json
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from typing import List, Optional
-from uuid import UUID
 
-from app.database.models import BusinessProfile, Base
 from app.schemas import BusinessProfileCreate, BusinessProfileResponse
+from app.ai_service import generate_social_post
 
 app = FastAPI(title="AI Social Media Content Platform API")
 
-# Allow CORS for frontend interaction
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,27 +17,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class GeneratePostRequest(BaseModel):
+    company_name: str
+    topic: str
+    platform: str
+    brand_voice: Optional[str] = "professional"
+
 @app.get("/")
 def read_root():
     return {"message": "AI Social Media Content Platform Backend Running"}
 
-# Dummy placeholder for current user ID until Auth middleware is wired up
-DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000"
-
-@app.post("/api/business-profile", response_model=BusinessProfileResponse)
-def create_business_profile(profile: BusinessProfileCreate):
-    return {
-        "id": "11111111-1111-1111-1111-111111111111",
-        "user_id": DEFAULT_USER_ID,
-        "company_name": profile.company_name,
-        "industry": profile.industry,
-        "target_audience": profile.target_audience,
-        "brand_voice": profile.brand_voice,
-        "platforms": profile.platforms,
-        "created_at": "2026-07-25T10:00:00Z",
-        "updated_at": "2026-07-25T10:00:00Z"
-    }
-
-@app.get("/api/business-profile", response_model=List[BusinessProfileResponse])
-def get_business_profiles():
-    return []
+@app.post("/api/generate")
+def generate_post(req: GeneratePostRequest):
+    try:
+        raw_result = generate_social_post(
+            company_name=req.company_name,
+            topic=req.topic,
+            platform=req.platform,
+            brand_voice=req.brand_voice
+        )
+        return json.loads(raw_result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
