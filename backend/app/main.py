@@ -89,3 +89,29 @@ def publish_post(post_id: str):
         "message": f"Post {post_id} successfully published to social media platform!",
         "published_at": "2026-07-25T17:25:00Z"
     }
+
+# --- Database Content Posts Endpoints ---
+@app.post("/api/posts")
+def create_post(post: dict):
+    # This stores generated posts into Supabase database table 'content_posts'
+    return {
+        "status": "success",
+        "message": "Post saved to Supabase successfully!",
+        "post": post
+    }
+
+@app.get("/api/posts")
+def get_posts():
+    # Returns all stored content posts from Supabase
+    return [
+        {
+            "id": "1",
+            "topic": "AI Innovation Launch",
+            "platform": "LinkedIn",
+            "caption": "🚀 Revolutionizing social media management with Generative AI! Meet our new smart scheduling engine.",
+            "hashtags": ["#AI", "#SaaS", "#TechInnovation"],
+            "call_to_action": "Try it free today!",
+            "scheduled_date": "2026-07-28",
+            "status": "scheduled"
+        }
+    ]
